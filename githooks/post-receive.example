@@ -1,0 +1,25 @@
+#!/bin/sh
+#. /usr/share/git-core/contrib/hooks/post-receive-email
+
+echo "Updating remote repo on puppetmaster..."
+
+REPO="git@puppet_master.localdomain:/etc/puppet.git"
+DEPLOY="/etc/puppet/environments"
+SSH_ARGS="-i /home/git/.ssh/id_rsa"
+PUPPETMASTER="git@puppet_master.localdomain"
+SYNC_COMMAND="/usr/local/bin/puppet-sync"
+
+while read oldrev newrev refname
+do
+  BRANCH=`echo $refname | sed -n 's/^refs\/heads\///p'`
+  [ "$newrev" -eq 0 ] 2> /dev/null && DELETE='--delete' || DELETE=''
+
+  ssh $SSH_ARGS "$PUPPETMASTER" "$SYNC_COMMAND" \
+    --branch "$BRANCH" \
+    --repository "$REPO" \
+    --deploy "$DEPLOY" \
+    $DELETE
+
+done
+RETVAL=$?
+[ $RETVAL -eq 0 ] && echo "OK"
